@@ -8,7 +8,10 @@
 # Learn more about config at: https://juju.is/docs/sdk/config
 
 options:
-  thing:
-    default: 🎁
-    description: A thing used by the charm.
+  whitelist:
+    default: ""
+    description: |
+      Comma-separated whitelist of IP addresses,
+      IP ranges, CIDR ranges, or hostnames for hosts
+      from which admin operations can be initiated.
     type: string

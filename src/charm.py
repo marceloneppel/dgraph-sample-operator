@@ -16,7 +16,7 @@ import logging
 
 from ops.charm import CharmBase
 from ops.main import main
-from ops.model import ActiveStatus
+from ops.model import ActiveStatus, WaitingStatus
 
 logger = logging.getLogger(__name__)
 
@@ -26,14 +26,39 @@ class DgraphOperatorCharm(CharmBase):
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.framework.observe(self.on.dgraph_pebble_ready, self._on_dgraph_pebble_ready)
+        self.framework.observe(self.on.config_changed, self._on_config_changed)
 
-    def _on_dgraph_pebble_ready(self, event):
-        """Define and start a workload using the Pebble API."""
-        # Get a reference the container attribute on the PebbleReadyEvent
-        container = event.workload
-        # Define an initial Pebble layer configuration
-        pebble_layer = {
+    def _on_config_changed(self, event):
+        """Handle the config-changed event"""
+        # Get the dgraph container so we can configure/manipulate it
+        container = self.unit.get_container("dgraph")
+        # Create a new config layer
+        layer = self._dgraph_layer()
+
+        if container.can_connect():
+            # Get the current config
+            services = container.get_plan().to_dict().get("services", {})
+            # Check if there are any changes to services
+            if services != layer["services"]:
+                # Changes were made, add the new layer
+                container.add_layer("dgraph", layer, combine=True)
+                logging.info("Added updated layer 'dgraph' to Pebble plan")
+                # Restart it and report a new status to Juju
+                container.restart("zero")
+                container.restart("alpha")
+                logging.info("Restarted dgraph service")
+            # All is well, set an ActiveStatus
+            self.unit.status = ActiveStatus()
+        else:
+            self.unit.status = WaitingStatus("waiting for Pebble in workload container")
+
+    def _dgraph_layer(self):
+        """Returns a Pebble configration layer for Dgraph"""
+        whitelist = ""
+        if self.config["whitelist"] != "":
+            whitelist = " --security whitelist=" + self.config["whitelist"]
+        
+        return {
             "summary": "dgraph layer",
             "description": "pebble config layer for dgraph",
             "services": {
@@ -46,18 +71,11 @@ class DgraphOperatorCharm(CharmBase):
                 "alpha": {
                     "override": "replace",
                     "summary": "alpha",
-                    "command": "bash -c \"set -ex; dgraph alpha --my=$(hostname -f):7080 --zero $(hostname -f):5080 --security whitelist=0.0.0.0/0\"",
+                    "command": "bash -c \"set -ex; dgraph alpha --my=$(hostname -f):7080 --zero $(hostname -f):5080" + whitelist + "\"",
                     "startup": "enabled",
                 }
             },
         }
-        # Add intial Pebble config layer using the Pebble API
-        container.add_layer("dgraph", pebble_layer, combine=True)
-        # Autostart any services that were defined with startup: enabled
-        container.autostart()
-        # Learn more about statuses in the SDK docs:
-        # https://juju.is/docs/sdk/constructs#heading--statuses
-        self.unit.status = ActiveStatus()
 
 
 if __name__ == "__main__":
