@@ -69,7 +69,7 @@ class DgraphOperatorCharm(CharmBase):
             state_url = "http://localhost:6080/state"
             status_code = None
             while status_code != 200:
-                try:                
+                try:
                     logger.info("Checking %s", state_url)
                     status_code = urllib.request.urlopen(state_url, timeout=10).getcode()
                     if status_code != 200:
@@ -82,7 +82,8 @@ class DgraphOperatorCharm(CharmBase):
             container = self.unit.get_container("dgraph")
             while True:
                 try:
-                    container.exec(["dgraph", "live", "--files", "/data/import/demo.rdf", "--schema", "/data/import/demo.schema"]).wait_output()
+                    container.exec(["dgraph", "live", "--files", "/data/import/demo.rdf",
+                                    "--schema", "/data/import/demo.schema"]).wait_output()
                     break
                 except Exception as e:
                     logger.info(str(e))
@@ -98,7 +99,7 @@ class DgraphOperatorCharm(CharmBase):
         whitelist = ""
         if self.config["whitelist"] != "":
             whitelist = " --security whitelist=" + self.config["whitelist"]
-        
+
         return {
             "summary": "dgraph layer",
             "description": "pebble config layer for dgraph",
@@ -106,13 +107,16 @@ class DgraphOperatorCharm(CharmBase):
                 "zero": {
                     "override": "replace",
                     "summary": "zero",
-                    "command": "bash -c \"set -ex; cd /data; dgraph zero --my=$(hostname -f):5080\"",
+                    "command": """bash -c \"set -ex; cd /data;
+                               dgraph zero --my=$(hostname -f):5080\"""",
                     "startup": "enabled",
                 },
                 "alpha": {
                     "override": "replace",
                     "summary": "alpha",
-                    "command": "bash -c \"set -ex; cd /data; dgraph alpha --my=$(hostname -f):7080 --zero $(hostname -f):5080" + whitelist + "\"",
+                    "command": """bash -c \"set -ex; cd /data;
+                               dgraph alpha --my=$(hostname -f):7080
+                               --zero $(hostname -f):5080""" + whitelist + """\"""",
                     "startup": "enabled",
                 }
             },
@@ -129,7 +133,7 @@ class DgraphOperatorCharm(CharmBase):
         # Create the import folder
         try:
             os.mkdir("/data/import")
-        except:
+        except OSError:
             pass
         # Download the schema
         urllib.request.urlretrieve(schema_src, "/data/import/demo.schema")
@@ -149,8 +153,10 @@ class DgraphOperatorCharm(CharmBase):
             }
             }
             """.encode("utf-8")
-        headers={'Content-Type':'application/graphql'}
-        response = urllib.request.urlopen(urllib.request.Request("http://localhost:8080/admin", data=data, headers=headers))
+        headers = {'Content-Type': 'application/graphql'}
+        response = urllib.request.urlopen(urllib.request.Request("http://localhost:8080/admin",
+                                                                 data=data,
+                                                                 headers=headers))
         logger.info(response.read().decode())
 
 
