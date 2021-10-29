@@ -31,6 +31,7 @@ class DgraphOperatorCharm(CharmBase):
         super().__init__(*args)
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(self.on.export_action, self._export_action)
 
     def _on_install(self, _):
         # Download the data
@@ -129,6 +130,21 @@ class DgraphOperatorCharm(CharmBase):
         urllib.request.urlretrieve(data_src, "/data/import/demo.rdf")
         # Set the unit status back to Active
         self.unit.status = ActiveStatus()
+
+    def _export_action(self, event):
+        """Action handler that exports a database to the storage"""
+        data = """mutation {
+            export(input: {}) {
+                response {
+                message
+                code
+                }
+            }
+            }
+            """.encode("utf-8")
+        headers={'Content-Type':'application/graphql'}
+        response = urllib.request.urlopen(urllib.request.Request("http://localhost:8080/admin", data=data, headers=headers))
+        logger.info(response.read().decode())
 
 
 if __name__ == "__main__":
