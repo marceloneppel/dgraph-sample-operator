@@ -17,6 +17,7 @@ import os
 from time import sleep
 import urllib
 
+from charms.nginx_ingress_integrator.v0.ingress import IngressRequires
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
@@ -32,6 +33,12 @@ class DgraphOperatorCharm(CharmBase):
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.export_action, self._export_action)
+
+        self.ingress = IngressRequires(self, {
+            "service-hostname": "dgraph.juju",
+            "service-name": self.app.name,
+            "service-port": 8080
+        })
 
     def _on_install(self, _):
         # Download the data
