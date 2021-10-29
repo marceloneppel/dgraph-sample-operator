@@ -158,6 +158,7 @@ class DgraphOperatorCharm(CharmBase):
                                                                  data=data,
                                                                  headers=headers))
         logger.info(response.read().decode())
+        event.set_results({"result": "database exported"})
 
 
 if __name__ == "__main__":
