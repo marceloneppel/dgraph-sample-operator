@@ -11,8 +11,16 @@ summary: |
 containers:
   dgraph:
     resource: dgraph-image
+    mounts:
+      - storage: dbroot
+        location: /data
 
 resources:
   dgraph-image:
     type: oci-image
     description: OCI image for dgraph (dgraph/dgraph)
+
+storage:
+  dbroot:
+    type: filesystem
+    location: /data
