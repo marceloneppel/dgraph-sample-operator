@@ -24,3 +24,7 @@ storage:
   dbroot:
     type: filesystem
     location: /data
+
+requires:
+  ingress:
+    interface: ingress
